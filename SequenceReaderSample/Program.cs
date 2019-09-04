@@ -9,13 +9,12 @@ namespace SequenceReaderSample
 {
     internal class Program
     {
+        private const int ItemCount = 10;
         private const byte Comma = (byte)',';
 
         private static async Task Main()
         {
-            const int itemCount = 10;
-
-            var stream = CreateStreamOfItems(itemCount);
+            var stream = CreateStreamOfItems();
 
             var pipeReader = PipeReader.Create(stream, new StreamPipeReaderOptions(bufferSize: 64)); // forcing a small buffer
 
@@ -27,11 +26,11 @@ namespace SequenceReaderSample
 
                 if (result.IsCompleted && buffer.Length > 0)
                 {
-                    ReadLastItem(ref buffer);
+                    ReadLastItem(buffer);
                     break;
                 }
 
-                var position = ReadItem(ref buffer);
+                var position = ReadItem(buffer);
                 pipeReader.AdvanceTo(position, buffer.End);
             }
 
@@ -40,19 +39,19 @@ namespace SequenceReaderSample
             Console.ReadKey();
         }
 
-        private static Stream CreateStreamOfItems(int itemCount)
+        private static Stream CreateStreamOfItems()
         {
             var stream = new MemoryStream();
 
             using var writer = new StreamWriter(stream, new UTF8Encoding(), leaveOpen: true);
 
-            for (var i = 1; i < itemCount; i++)
+            for (var i = 1; i < ItemCount; i++)
             {
                 writer.Write($"Item {i},");
                 writer.Flush();
             }
 
-            writer.Write($"Item {itemCount}");
+            writer.Write($"Item {ItemCount}");
             writer.Flush();
 
             stream.Seek(0, SeekOrigin.Begin);
@@ -60,7 +59,7 @@ namespace SequenceReaderSample
             return stream;
         }
 
-        private static SequencePosition ReadItem(ref ReadOnlySequence<byte> sequence)
+        private static SequencePosition ReadItem(in ReadOnlySequence<byte> sequence)
         {
             var reader = new SequenceReader<byte>(sequence);
 
@@ -80,7 +79,7 @@ namespace SequenceReaderSample
             return reader.Position;
         }
 
-        private static void ReadLastItem(ref ReadOnlySequence<byte> sequence)
+        private static void ReadLastItem(in ReadOnlySequence<byte> sequence)
         {
             var length = (int)sequence.Length;
 
